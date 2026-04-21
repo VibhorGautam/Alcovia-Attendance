@@ -1,13 +1,21 @@
 // Google Apps Script - paste this into script.google.com
-// File > New project > paste > Deploy > Web app > Execute as: Me, Access: Anyone
+// Deploy > Web app > Execute as: Me, Access: Anyone
 
 const SHEET_ID = '1DBkoD_R8SvO4tRJ3INsbr3PhNRrDvhicw8bGuRZWay4';
 const SHEET_NAME = 'Sheet1';
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    var data;
+    if (e.parameter && e.parameter.payload) {
+      data = JSON.parse(e.parameter.payload);
+    } else if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else {
+      throw new Error('No data received');
+    }
+
+    var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
 
     sheet.appendRow([
       data.date,
