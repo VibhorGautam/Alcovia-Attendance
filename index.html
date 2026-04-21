@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Alcovia Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #06090f;
+            --surface: #0d1117;
+            --surface-2: #161b22;
+            --border: #21262d;
+            --border-focus: #388bfd;
+            --text: #f0f6fc;
+            --text-muted: #7d8590;
+            --accent: #2f81f7;
+            --accent-hover: #1f6feb;
+            --green: #3fb950;
+            --green-dim: rgba(63, 185, 80, 0.1);
+            --amber: #d29922;
+            --amber-dim: rgba(210, 153, 34, 0.1);
+            --red: #f85149;
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .screen {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem 1.5rem;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen.active { display: flex; }
+
+        .brand {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .brand::before, .brand::after {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 1px;
+            background: var(--border);
+            vertical-align: middle;
+            margin: 0 12px;
+        }
+
+        .time-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(2.8rem, 12vw, 4rem);
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            white-space: nowrap;
+        }
+
+        .time-display .period {
+            font-size: 0.4em;
+            font-weight: 500;
+            color: var(--text-muted);
+            vertical-align: super;
+            margin-left: 4px;
+        }
+
+        .date-display {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.5rem 0 2.5rem;
+            font-weight: 400;
+        }
+
+        .form-group {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .select-wrapper::after {
+            content: '';
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid var(--text-muted);
+            pointer-events: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 14px 40px 14px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
+        }
+
+        select option {
+            background: var(--surface);
+            color: var(--text);
+            padding: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px 24px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
+
+        .btn-checkin {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .btn-checkin:hover:not(:disabled) {
+            background: #2ea043;
+            box-shadow: 0 4px 20px rgba(63, 185, 80, 0.25);
+        }
+
+        .btn-checkout {
+            background: var(--amber);
+            color: #fff;
+        }
+
+        .btn-checkout:hover:not(:disabled) {
+            background: #bb8009;
+            box-shadow: 0 4px 20px rgba(210, 153, 34, 0.25);
+        }
+
+        .status-card {
+            width: 100%;
+            margin-top: 1.25rem;
+            padding: 16px 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status-card.visible { display: block; }
+
+        .status-card.checked-in {
+            background: var(--green-dim);
+            border: 1px solid rgba(63, 185, 80, 0.2);
+        }
+
+        .status-card.checked-out {
+            background: var(--amber-dim);
+            border: 1px solid rgba(210, 153, 34, 0.2);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .status-row + .status-row {
+            margin-top: 6px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .status-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-time.green { color: var(--green); }
+        .status-time.amber { color: var(--amber); }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        .status-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-badge.in { color: var(--green); }
+        .status-badge.in .dot { background: var(--green); }
+        .status-badge.out { color: var(--amber); }
+        .status-badge.out .dot { background: var(--amber); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .duration {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .duration strong {
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 480px) {
+            .screen { padding: 1.5rem 1.25rem; }
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #ffffff;
+                --surface: #f6f8fa;
+                --surface-2: #eaeef2;
+                --border: #d0d7de;
+                --border-focus: #0969da;
+                --text: #1f2328;
+                --text-muted: #656d76;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="blocked" class="screen">
+        <div class="brand">Alcovia</div>
+        <div style="text-align:center; margin-top: 3rem;">
+            <div style="font-size:2.5rem; margin-bottom:1rem;">&#128274;</div>
+            <h1 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem; color:var(--red);">Access Restricted</h1>
+            <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">Connect to the office Wi-Fi<br>to mark attendance.</p>
+        </div>
+    </div>
+
+    <div id="app" class="screen">
+        <div class="brand">Alcovia</div>
+
+        <div class="time-display" id="clock"></div>
+        <div class="date-display" id="date"></div>
+
+        <div class="form-group">
+            <div class="select-wrapper">
+                <select id="employee">
+                    <option value="" disabled selected>Select your name</option>
+                    <option value="vibhor">Vibhor Gautam</option>
+                    <option value="sahil">Sahil</option>
+                    <option value="nehil">Nehil</option>
+                    <option value="samanyu">Samanyu</option>
+                    <option value="manan">Manan</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn btn-checkin" id="btn-checkin" disabled>Check In</button>
+        <button class="btn btn-checkout hidden" id="btn-checkout">Check Out</button>
+
+        <div id="status-card" class="status-card"></div>
+    </div>
+
+    <script>
+        const ALLOWED_IPS = ['14.143.254.194'];
+        const STORAGE_KEY = 'alcovia_attendance';
+
+        function todayKey() { return new Date().toISOString().split('T')[0]; }
+
+        function getRecords() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+            catch { return {}; }
+        }
+
+        function saveRecord(entry) {
+            const records = getRecords();
+            if (!records[todayKey()]) records[todayKey()] = [];
+            records[todayKey()].push(entry);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        }
+
+        function getEntries(empId) {
+            return (getRecords()[todayKey()] || []).filter(e => e.employeeId === empId);
+        }
+
+        function getLastEntry(empId) {
+            const entries = getEntries(empId);
+            return entries.length ? entries[entries.length - 1] : null;
+        }
+
+        function formatTime(date) {
+            const h = date.getHours();
+            const m = String(date.getMinutes()).padStart(2, '0');
+            const s = String(date.getSeconds()).padStart(2, '0');
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return { time: `${String(h12).padStart(2, '0')}:${m}:${s}`, period };
+        }
+
+        function formatShortTime(isoString) {
+            const d = new Date(isoString);
+            const h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const s = String(d.getSeconds()).padStart(2, '0');
+            const period = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${String(h12).padStart(2, '0')}:${m}:${s} ${period}`;
+        }
+
+        function formatDuration(ms) {
+            const totalMin = Math.floor(ms / 60000);
+            const h = Math.floor(totalMin / 60);
+            const m = totalMin % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            return `${m}m`;
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const { time, period } = formatTime(now);
+            document.getElementById('clock').innerHTML = `${time}<span class="period">${period}</span>`;
+            document.getElementById('date').textContent = now.toLocaleDateString('en-IN', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+        }
+
+        function updateUI() {
+            const empId = document.getElementById('employee').value;
+            const checkinBtn = document.getElementById('btn-checkin');
+            const checkoutBtn = document.getElementById('btn-checkout');
+            const card = document.getElementById('status-card');
+
+            if (!empId) {
+                checkinBtn.disabled = true;
+                checkinBtn.classList.remove('hidden');
+                checkoutBtn.classList.add('hidden');
+                card.classList.remove('visible');
+                return;
+            }
+
+            const last = getLastEntry(empId);
+            const entries = getEntries(empId);
+            const inEntry = [...entries].reverse().find(e => e.type === 'in');
+
+            if (!last) {
+                checkinBtn.disabled = false;
+                checkinBtn.classList.remove('hidden');
+                checkoutBtn.classList.add('hidden');
+                card.classList.remove('visible');
+            } else if (last.type === 'in') {
+                checkinBtn.classList.add('hidden');
+                checkoutBtn.classList.remove('hidden');
+                card.className = 'status-card visible checked-in';
+                card.innerHTML = `
+                    <div class="status-badge in"><span class="dot"></span> Active</div>
+                    <div class="status-row">
+                        <span class="status-label">Checked in</span>
+                        <span class="status-time green">${formatShortTime(last.timestamp)}</span>
+                    </div>`;
+            } else {
+                checkinBtn.classList.add('hidden');
+                checkoutBtn.classList.add('hidden');
+                card.className = 'status-card visible checked-out';
+
+                let durationHtml = '';
+                if (inEntry) {
+                    const ms = new Date(last.timestamp) - new Date(inEntry.timestamp);
+                    durationHtml = `<div class="duration">Total: <strong>${formatDuration(ms)}</strong></div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="status-badge out"><span class="dot"></span> Completed</div>
+                    <div class="status-row">
+                        <span class="status-label">Checked in</span>
+                        <span class="status-time green">${inEntry ? formatShortTime(inEntry.timestamp) : '--'}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="status-label">Checked out</span>
+                        <span class="status-time amber">${formatShortTime(last.timestamp)}</span>
+                    </div>
+                    ${durationHtml}`;
+            }
+        }
+
+        function record(type) {
+            const empId = document.getElementById('employee').value;
+            if (!empId) return;
+            saveRecord({
+                employeeId: empId,
+                type: type,
+                timestamp: new Date().toISOString()
+            });
+            updateUI();
+        }
+
+        async function init() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                if (!ALLOWED_IPS.includes(data.ip)) {
+                    document.getElementById('blocked').classList.add('active');
+                    return;
+                }
+            } catch {
+                document.getElementById('blocked').classList.add('active');
+                return;
+            }
+
+            document.getElementById('app').classList.add('active');
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            document.getElementById('employee').addEventListener('change', updateUI);
+            document.getElementById('btn-checkin').addEventListener('click', () => record('in'));
+            document.getElementById('btn-checkout').addEventListener('click', () => record('out'));
+        }
+
+        init();
+    </script>
+</body>
+</html>
