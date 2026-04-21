@@ -19,7 +19,6 @@
             --text: #f0f6fc;
             --text-muted: #7d8590;
             --accent: #2f81f7;
-            --accent-hover: #1f6feb;
             --green: #3fb950;
             --green-dim: rgba(63, 185, 80, 0.1);
             --amber: #d29922;
@@ -37,7 +36,6 @@
             justify-content: center;
             align-items: center;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
 
         .screen {
@@ -92,13 +90,9 @@
             font-size: 0.85rem;
             color: var(--text-muted);
             margin: 0.5rem 0 2.5rem;
-            font-weight: 400;
         }
 
-        .form-group {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
+        .form-group { width: 100%; margin-bottom: 1rem; }
 
         .select-wrapper {
             position: relative;
@@ -111,8 +105,6 @@
             right: 16px;
             top: 50%;
             transform: translateY(-50%);
-            width: 0;
-            height: 0;
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
             border-top: 5px solid var(--text-muted);
@@ -141,10 +133,37 @@
             box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
         }
 
-        select option {
-            background: var(--surface);
+        select option { background: var(--surface); color: var(--text); }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 400;
             color: var(--text);
-            padding: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
+        }
+
+        .field-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .btn {
@@ -157,28 +176,18 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            position: relative;
-            overflow: hidden;
         }
 
         .btn:active { transform: scale(0.98); }
         .btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
 
-        .btn-checkin {
-            background: var(--green);
-            color: #fff;
-        }
-
+        .btn-checkin { background: var(--green); color: #fff; }
         .btn-checkin:hover:not(:disabled) {
             background: #2ea043;
             box-shadow: 0 4px 20px rgba(63, 185, 80, 0.25);
         }
 
-        .btn-checkout {
-            background: var(--amber);
-            color: #fff;
-        }
-
+        .btn-checkout { background: var(--amber); color: #fff; }
         .btn-checkout:hover:not(:disabled) {
             background: #bb8009;
             box-shadow: 0 4px 20px rgba(210, 153, 34, 0.25);
@@ -217,11 +226,7 @@
             border-top: 1px solid rgba(255,255,255,0.06);
         }
 
-        .status-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
+        .status-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
 
         .status-time {
             font-family: 'JetBrains Mono', monospace;
@@ -244,8 +249,7 @@
         }
 
         .status-badge .dot {
-            width: 6px;
-            height: 6px;
+            width: 6px; height: 6px;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
@@ -274,29 +278,36 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.success { background: var(--green); color: #fff; }
+        .toast.error { background: var(--red); color: #fff; }
+
         .hidden { display: none !important; }
 
         @media (max-width: 480px) {
             .screen { padding: 1.5rem 1.25rem; }
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bg: #ffffff;
-                --surface: #f6f8fa;
-                --surface-2: #eaeef2;
-                --border: #d0d7de;
-                --border-focus: #0969da;
-                --text: #1f2328;
-                --text-muted: #656d76;
-            }
         }
     </style>
 </head>
 <body>
     <div id="blocked" class="screen">
         <div class="brand">Alcovia</div>
-        <div style="text-align:center; margin-top: 3rem;">
+        <div style="text-align:center; margin-top:3rem;">
             <div style="font-size:2.5rem; margin-bottom:1rem;">&#128274;</div>
             <h1 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem; color:var(--red);">Access Restricted</h1>
             <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.5;">Connect to the office Wi-Fi<br>to mark attendance.</p>
@@ -305,21 +316,26 @@
 
     <div id="app" class="screen">
         <div class="brand">Alcovia</div>
-
         <div class="time-display" id="clock"></div>
         <div class="date-display" id="date"></div>
 
         <div class="form-group">
+            <label class="field-label">Employee</label>
             <div class="select-wrapper">
                 <select id="employee">
                     <option value="" disabled selected>Select your name</option>
-                    <option value="vibhor">Vibhor Gautam</option>
-                    <option value="sahil">Sahil</option>
-                    <option value="nehil">Nehil</option>
-                    <option value="samanyu">Samanyu</option>
-                    <option value="manan">Manan</option>
+                    <option value="vibhor" data-email="vibhor.gautam@alcovia.life" data-full="Vibhor Gautam">Vibhor Gautam</option>
+                    <option value="sahil" data-email="sahil@alcovia.life" data-full="Sahil Puri">Sahil</option>
+                    <option value="nehil" data-email="nehil@alcovia.life" data-full="Nehil">Nehil</option>
+                    <option value="samanyu" data-email="samanyu@alcovia.life" data-full="Samanyu">Samanyu</option>
+                    <option value="manan" data-email="manan@alcovia.life" data-full="Manan">Manan</option>
                 </select>
             </div>
+        </div>
+
+        <div class="form-group">
+            <label class="field-label">Reason <span style="opacity:0.5;">(optional)</span></label>
+            <input type="text" id="reason" placeholder="e.g. Traffic, WFH, Doctor visit">
         </div>
 
         <button class="btn btn-checkin" id="btn-checkin" disabled>Check In</button>
@@ -328,9 +344,17 @@
         <div id="status-card" class="status-card"></div>
     </div>
 
+    <div id="toast" class="toast"></div>
+
     <script>
         const ALLOWED_IPS = ['14.143.254.194'];
         const STORAGE_KEY = 'alcovia_attendance';
+        const LATE_HOUR = 10;
+
+        // Replace with your deployed Apps Script URL
+        const SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';
+
+        let currentIP = '';
 
         function todayKey() { return new Date().toISOString().split('T')[0]; }
 
@@ -355,7 +379,7 @@
             return entries.length ? entries[entries.length - 1] : null;
         }
 
-        function formatTime(date) {
+        function formatClock(date) {
             const h = date.getHours();
             const m = String(date.getMinutes()).padStart(2, '0');
             const s = String(date.getSeconds()).padStart(2, '0');
@@ -364,40 +388,82 @@
             return { time: `${String(h12).padStart(2, '0')}:${m}:${s}`, period };
         }
 
-        function formatShortTime(isoString) {
-            const d = new Date(isoString);
+        function formatShortTime(iso) {
+            const d = new Date(iso);
             const h = d.getHours();
             const m = String(d.getMinutes()).padStart(2, '0');
             const s = String(d.getSeconds()).padStart(2, '0');
-            const period = h >= 12 ? 'PM' : 'AM';
-            const h12 = h % 12 || 12;
-            return `${String(h12).padStart(2, '0')}:${m}:${s} ${period}`;
+            const p = h >= 12 ? 'PM' : 'AM';
+            return `${String(h % 12 || 12).padStart(2, '0')}:${m}:${s} ${p}`;
+        }
+
+        function formatHHMM(date) {
+            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
         }
 
         function formatDuration(ms) {
             const totalMin = Math.floor(ms / 60000);
             const h = Math.floor(totalMin / 60);
             const m = totalMin % 60;
-            if (h > 0) return `${h}h ${m}m`;
-            return `${m}m`;
+            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+        }
+
+        function getDayName(date) {
+            return date.toLocaleDateString('en-IN', { weekday: 'long' });
+        }
+
+        function getStatus(date) {
+            return date.getHours() >= LATE_HOUR ? 'Late' : 'On Time';
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
 
         function updateClock() {
             const now = new Date();
-            const { time, period } = formatTime(now);
+            const { time, period } = formatClock(now);
             document.getElementById('clock').innerHTML = `${time}<span class="period">${period}</span>`;
             document.getElementById('date').textContent = now.toLocaleDateString('en-IN', {
                 weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
             });
         }
 
+        function getSelectedEmployee() {
+            const sel = document.getElementById('employee');
+            const opt = sel.options[sel.selectedIndex];
+            if (!sel.value) return null;
+            return {
+                id: sel.value,
+                name: opt.dataset.full,
+                email: opt.dataset.email
+            };
+        }
+
+        async function pushToSheet(data) {
+            if (SCRIPT_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return;
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } catch (err) {
+                console.error('Sheet sync failed:', err);
+            }
+        }
+
         function updateUI() {
-            const empId = document.getElementById('employee').value;
+            const emp = getSelectedEmployee();
             const checkinBtn = document.getElementById('btn-checkin');
             const checkoutBtn = document.getElementById('btn-checkout');
             const card = document.getElementById('status-card');
 
-            if (!empId) {
+            if (!emp) {
                 checkinBtn.disabled = true;
                 checkinBtn.classList.remove('hidden');
                 checkoutBtn.classList.add('hidden');
@@ -405,8 +471,8 @@
                 return;
             }
 
-            const last = getLastEntry(empId);
-            const entries = getEntries(empId);
+            const last = getLastEntry(emp.id);
+            const entries = getEntries(emp.id);
             const inEntry = [...entries].reverse().find(e => e.type === 'in');
 
             if (!last) {
@@ -428,13 +494,11 @@
                 checkinBtn.classList.add('hidden');
                 checkoutBtn.classList.add('hidden');
                 card.className = 'status-card visible checked-out';
-
                 let durationHtml = '';
                 if (inEntry) {
                     const ms = new Date(last.timestamp) - new Date(inEntry.timestamp);
                     durationHtml = `<div class="duration">Total: <strong>${formatDuration(ms)}</strong></div>`;
                 }
-
                 card.innerHTML = `
                     <div class="status-badge out"><span class="dot"></span> Completed</div>
                     <div class="status-row">
@@ -450,21 +514,41 @@
         }
 
         function record(type) {
-            const empId = document.getElementById('employee').value;
-            if (!empId) return;
+            const emp = getSelectedEmployee();
+            if (!emp) return;
+
+            const now = new Date();
+            const reason = document.getElementById('reason').value.trim();
+
             saveRecord({
-                employeeId: empId,
+                employeeId: emp.id,
                 type: type,
-                timestamp: new Date().toISOString()
+                timestamp: now.toISOString()
             });
+
+            const sheetRow = {
+                date: todayKey(),
+                day: getDayName(now),
+                name: emp.name,
+                email: emp.email,
+                time: formatHHMM(now),
+                status: type === 'in' ? getStatus(now) : 'Check Out',
+                ip: currentIP,
+                reason: reason
+            };
+
+            pushToSheet(sheetRow);
+            document.getElementById('reason').value = '';
             updateUI();
+            showToast(type === 'in' ? 'Checked in successfully' : 'Checked out successfully', 'success');
         }
 
         async function init() {
             try {
                 const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
-                if (!ALLOWED_IPS.includes(data.ip)) {
+                currentIP = data.ip;
+                if (!ALLOWED_IPS.includes(currentIP)) {
                     document.getElementById('blocked').classList.add('active');
                     return;
                 }
