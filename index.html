@@ -349,7 +349,8 @@
     <script>
         const ALLOWED_IPS = ['14.143.254.194'];
         const STORAGE_KEY = 'alcovia_attendance';
-        const LATE_HOUR = 10;
+        const LATE_HOUR = 9;
+        const LATE_MINUTE = 35;
 
         // Replace with your deployed Apps Script URL
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOo9CBWnyMBKBHR6_uD_xpRjbYEq_IOYw9YpS1MWu87eLgKjddEf8Gr5lwxsoWkAWQZw/exec';
@@ -413,7 +414,9 @@
         }
 
         function getStatus(date) {
-            return date.getHours() >= LATE_HOUR ? 'Late' : 'On Time';
+            const h = date.getHours();
+            const m = date.getMinutes();
+            return (h > LATE_HOUR || (h === LATE_HOUR && m >= LATE_MINUTE)) ? 'Late' : 'On Time';
         }
 
         function showToast(msg, type) {
