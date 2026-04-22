@@ -352,7 +352,7 @@
         const LATE_HOUR = 10;
 
         // Replace with your deployed Apps Script URL
-        const SCRIPT_URL = 'https://script.google.com/a/macros/alcovia.life/s/AKfycbwW-TQd20OMLUsS4P-fJGNYNwgkTg2W6wmqD2vVzDLvvFG_HmmEyX5r5MCOYVixGIWdBg/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2IIq5IzwbsW6TGHwI-Eu-w86bHqbnd1YcT0_uTiNU-FH5en5MiyCccfUVRjbBn3mP/exec';
 
         let currentIP = '';
 
@@ -445,9 +445,8 @@
 
         async function pushToSheet(data) {
             try {
-                const form = new FormData();
-                form.append('payload', JSON.stringify(data));
-                await fetch(SCRIPT_URL, { method: 'POST', body: form });
+                const params = new URLSearchParams({ payload: JSON.stringify(data) });
+                await fetch(`${SCRIPT_URL}?${params.toString()}`);
             } catch (err) {
                 console.error('Sheet sync failed:', err);
             }

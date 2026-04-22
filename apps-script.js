@@ -1,20 +1,33 @@
 // Google Apps Script - paste this into script.google.com
 // Deploy > Web app > Execute as: Me, Access: Anyone
 
-const SHEET_ID = '1DBkoD_R8SvO4tRJ3INsbr3PhNRrDvhicw8bGuRZWay4';
-const SHEET_NAME = 'Sheet1';
+var SHEET_ID = '1DBkoD_R8SvO4tRJ3INsbr3PhNRrDvhicw8bGuRZWay4';
+var SHEET_NAME = 'Sheet1';
+
+function doGet(e) {
+  if (e.parameter && e.parameter.payload) {
+    return writeRow(e.parameter.payload);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: 'alive' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function doPost(e) {
-  try {
-    var data;
-    if (e.parameter && e.parameter.payload) {
-      data = JSON.parse(e.parameter.payload);
-    } else if (e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
-    } else {
-      throw new Error('No data received');
-    }
+  if (e.parameter && e.parameter.payload) {
+    return writeRow(e.parameter.payload);
+  }
+  if (e.postData && e.postData.contents) {
+    return writeRow(e.postData.contents);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify({ result: 'error', message: 'No data' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
+function writeRow(raw) {
+  try {
+    var data = JSON.parse(raw);
     var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
 
     sheet.appendRow([
@@ -36,10 +49,4 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ result: 'error', message: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function doGet() {
-  return ContentService
-    .createTextOutput(JSON.stringify({ status: 'alive' }))
-    .setMimeType(ContentService.MimeType.JSON);
 }
