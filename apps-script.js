@@ -37,7 +37,6 @@ function writeRow(raw) {
       data.email,
       data.time,
       data.status,
-      data.ip,
       data.reason || ''
     ]);
 

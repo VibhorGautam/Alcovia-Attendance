@@ -355,8 +355,6 @@
         // Replace with your deployed Apps Script URL
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOo9CBWnyMBKBHR6_uD_xpRjbYEq_IOYw9YpS1MWu87eLgKjddEf8Gr5lwxsoWkAWQZw/exec';
 
-        let currentIP = '';
-
         function todayKey() { return new Date().toISOString().split('T')[0]; }
 
         function getRecords() {
@@ -531,7 +529,6 @@
                 email: emp.email,
                 time: formatHHMM(now),
                 status: type === 'in' ? getStatus(now) : 'Check Out',
-                ip: currentIP,
                 reason: reason
             };
 
@@ -545,8 +542,7 @@
             try {
                 const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
-                currentIP = data.ip;
-                if (!ALLOWED_IPS.includes(currentIP)) {
+                if (!ALLOWED_IPS.includes(data.ip)) {
                     document.getElementById('blocked').classList.add('active');
                     return;
                 }
