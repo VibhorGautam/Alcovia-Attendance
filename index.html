@@ -701,6 +701,11 @@
                         status: 'Leave',
                         reason: leaveReason
                     });
+                    const absenceParams = new URLSearchParams({ payload: JSON.stringify({
+                        action: 'leave', name: emp.name, email: emp.email,
+                        leaveType: 'Personal', startDate: prevDay, endDate: prevDay, reason: leaveReason
+                    })});
+                    fetch(`${SCRIPT_URL}?${absenceParams.toString()}`).catch(() => {});
                     saveRecord({ employeeId: emp.id, type: 'leave', timestamp: new Date(prevDay).toISOString() }, prevDay);
                 }
 
