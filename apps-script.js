@@ -143,3 +143,9 @@ function alive()         { return json({ status: 'alive' }); }
 function okResponse()    { return json({ result: 'ok' }); }
 function errResponse(m)  { return json({ result: 'error', message: m }); }
 function json(obj)       { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
+
+// Run this once from the editor to grant UrlFetchApp permission, then delete it
+function grantUrlFetchScope() {
+  var r = UrlFetchApp.fetch('https://httpbin.org/get');
+  Logger.log(r.getContentText());
+}
