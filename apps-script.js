@@ -122,7 +122,7 @@ function handleLeave(data) {
       ]
     };
 
-    UrlFetchApp.fetch(
+    var resp = UrlFetchApp.fetch(
       'https://api.clickup.com/api/v2/list/' + CLICKUP_LEAVE_LIST_ID + '/task',
       {
         method: 'post',
@@ -133,6 +133,10 @@ function handleLeave(data) {
       }
     );
 
+    var code = resp.getResponseCode();
+    if (code < 200 || code >= 300) {
+      return errResponse('ClickUp API ' + code + ': ' + resp.getContentText());
+    }
     return okResponse();
   } catch (err) {
     return errResponse(err.toString());
