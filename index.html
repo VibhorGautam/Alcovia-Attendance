@@ -829,6 +829,10 @@
             initTabs();
             setLeaveDefaults();
 
+            document.querySelectorAll('#employee option[data-email]').forEach(opt => {
+                prefetchYesterday({ email: opt.dataset.email });
+            });
+
             document.getElementById('employee').addEventListener('change', () => {
                 updateUI();
                 const emp = getSelectedEmployee();
