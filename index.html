@@ -432,7 +432,13 @@
             <div id="leave-group" class="form-group hidden">
                 <label class="field-label">Yesterday's Absence<span class="required-star">*</span></label>
                 <div class="notice leave">No check-in recorded for yesterday. Provide a reason to continue.</div>
-                <input type="text" id="leave-reason" placeholder="e.g. Sick, Personal, Holiday">
+                <select id="leave-reason">
+                    <option value="" disabled selected>Select reason</option>
+                    <option value="Sick">Sick</option>
+                    <option value="Vacation">Vacation</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Emergency">Emergency</option>
+                </select>
             </div>
 
             <div id="reason-group" class="form-group hidden">
@@ -690,20 +696,11 @@
             if (type === 'in') {
                 const prevDay = getPreviousWorkday();
                 if (!hadYesterdayEntry(emp.email)) {
-                    const leaveReason = document.getElementById('leave-reason').value.trim();
-                    if (!leaveReason) { showToast("Provide a reason for yesterday's absence", 'error'); return; }
-                    pushToSheet({
-                        date: prevDay,
-                        day: getDayName(new Date(prevDay)),
-                        name: emp.name,
-                        email: emp.email,
-                        time: '--',
-                        status: 'Leave',
-                        reason: leaveReason
-                    });
+                    const leaveReason = document.getElementById('leave-reason').value;
+                    if (!leaveReason) { showToast("Select a reason for yesterday's absence", 'error'); return; }
                     const absenceParams = new URLSearchParams({ payload: JSON.stringify({
                         action: 'leave', name: emp.name, email: emp.email,
-                        leaveType: 'Personal', startDate: prevDay, endDate: prevDay, reason: leaveReason
+                        leaveType: leaveReason, startDate: prevDay, endDate: prevDay, reason: leaveReason
                     })});
                     fetch(`${SCRIPT_URL}?${absenceParams.toString()}`).catch(() => {});
                     saveRecord({ employeeId: emp.id, type: 'leave', timestamp: new Date(prevDay).toISOString() }, prevDay);
