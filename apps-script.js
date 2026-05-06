@@ -1,6 +1,20 @@
 // Google Apps Script - paste this into script.google.com
 // Deploy > Web app > Execute as: Me, Access: Anyone
 //
+// REQUIRED: enable external requests scope so UrlFetchApp can call ClickUp API
+//   1. Project Settings > check "Show appsscript.json manifest file in editor"
+//   2. Open appsscript.json and set:
+//      {
+//        "timeZone": "Asia/Kolkata",
+//        "oauthScopes": [
+//          "https://www.googleapis.com/auth/spreadsheets",
+//          "https://www.googleapis.com/auth/script.external_request"
+//        ],
+//        "exceptionLogging": "STACKDRIVER",
+//        "runtimeVersion": "V8"
+//      }
+//   3. Save, then re-deploy as a new version
+//
 // Script Property required before leave submissions work:
 //   Project Settings > Script Properties > CLICKUP_API_KEY = pk_xxxxxxxxxx
 //   Get your token: https://app.clickup.com/settings/apps

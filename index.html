@@ -276,12 +276,6 @@
             box-shadow: 0 4px 20px rgba(63, 185, 80, 0.25);
         }
 
-        .btn-checkout { background: var(--amber); color: #fff; }
-        .btn-checkout:hover:not(:disabled) {
-            background: #bb8009;
-            box-shadow: 0 4px 20px rgba(210, 153, 34, 0.25);
-        }
-
         .btn-leave { background: var(--accent); color: #fff; }
         .btn-leave:hover:not(:disabled) {
             background: #1a6fe8;
@@ -302,11 +296,6 @@
         .status-card.checked-in {
             background: var(--green-dim);
             border: 1px solid rgba(63, 185, 80, 0.2);
-        }
-
-        .status-card.checked-out {
-            background: var(--amber-dim);
-            border: 1px solid rgba(210, 153, 34, 0.2);
         }
 
         .status-row {
@@ -452,7 +441,6 @@
             </div>
 
             <button class="btn btn-checkin" id="btn-checkin" disabled>Check In</button>
-            <button class="btn btn-checkout hidden" id="btn-checkout">Check Out</button>
 
             <div id="status-card" class="status-card"></div>
         </div>
@@ -658,7 +646,6 @@
         function updateUI() {
             const emp = getSelectedEmployee();
             const checkinBtn = document.getElementById('btn-checkin');
-            const checkoutBtn = document.getElementById('btn-checkout');
             const card = document.getElementById('status-card');
             const leaveGroup = document.getElementById('leave-group');
             const reasonGroup = document.getElementById('reason-group');
@@ -666,7 +653,6 @@
             if (!emp) {
                 checkinBtn.disabled = true;
                 checkinBtn.classList.remove('hidden');
-                checkoutBtn.classList.add('hidden');
                 card.classList.remove('visible');
                 leaveGroup.classList.add('hidden');
                 reasonGroup.classList.add('hidden');
@@ -674,8 +660,6 @@
             }
 
             const last = getLastEntry(emp.id);
-            const entries = getEntries(emp.id);
-            const inEntry = [...entries].reverse().find(e => e.type === 'in');
             const isPreCheckin = !last;
 
             leaveGroup.classList.toggle('hidden', !isPreCheckin || hadYesterdayEntry(emp.email));
@@ -684,38 +668,16 @@
             if (!last) {
                 checkinBtn.disabled = false;
                 checkinBtn.classList.remove('hidden');
-                checkoutBtn.classList.add('hidden');
                 card.classList.remove('visible');
-            } else if (last.type === 'in') {
-                checkinBtn.classList.add('hidden');
-                checkoutBtn.classList.remove('hidden');
-                card.className = 'status-card visible checked-in';
-                card.innerHTML = `
-                    <div class="status-badge in"><span class="dot"></span> Active</div>
-                    <div class="status-row">
-                        <span class="status-label">Checked in</span>
-                        <span class="status-time green">${formatShortTime(last.timestamp)}</span>
-                    </div>`;
             } else {
                 checkinBtn.classList.add('hidden');
-                checkoutBtn.classList.add('hidden');
-                card.className = 'status-card visible checked-out';
-                let durationHtml = '';
-                if (inEntry) {
-                    const ms = new Date(last.timestamp) - new Date(inEntry.timestamp);
-                    durationHtml = `<div class="duration">Total: <strong>${formatDuration(ms)}</strong></div>`;
-                }
+                card.className = 'status-card visible checked-in';
                 card.innerHTML = `
-                    <div class="status-badge out"><span class="dot"></span> Completed</div>
+                    <div class="status-badge in"><span class="dot"></span> Checked In</div>
                     <div class="status-row">
-                        <span class="status-label">Checked in</span>
-                        <span class="status-time green">${inEntry ? formatShortTime(inEntry.timestamp) : '--'}</span>
-                    </div>
-                    <div class="status-row">
-                        <span class="status-label">Checked out</span>
-                        <span class="status-time amber">${formatShortTime(last.timestamp)}</span>
-                    </div>
-                    ${durationHtml}`;
+                        <span class="status-label">Checked in at</span>
+                        <span class="status-time green">${formatShortTime(last.timestamp)}</span>
+                    </div>`;
             }
         }
 
@@ -756,14 +718,14 @@
                 name: emp.name,
                 email: emp.email,
                 time: formatHHMM(now),
-                status: type === 'in' ? getStatus(now) : 'Check Out',
+                status: getStatus(now),
                 reason: reason
             });
 
             document.getElementById('reason').value = '';
             document.getElementById('leave-reason').value = '';
             updateUI();
-            showToast(type === 'in' ? 'Checked in successfully' : 'Checked out successfully', 'success');
+            showToast('Checked in successfully', 'success');
         }
 
         // ── Leave Request tab ────────────────────────────────────────
@@ -873,7 +835,6 @@
                 if (emp) prefetchYesterday(emp);
             });
             document.getElementById('btn-checkin').addEventListener('click', () => record('in'));
-            document.getElementById('btn-checkout').addEventListener('click', () => record('out'));
 
             document.getElementById('leave-start').addEventListener('change', () => {
                 const s = document.getElementById('leave-start').value;
