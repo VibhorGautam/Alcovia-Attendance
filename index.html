@@ -449,7 +449,7 @@
             </div>
 
             <div id="notice-offpremise" class="notice leave hidden">Connect to office Wi-Fi to mark attendance.</div>
-            <button class="btn btn-checkin" id="btn-checkin" disabled>Check In</button>
+            <button class="btn btn-checkin" id="btn-checkin">Check In</button>
 
             <div id="status-card" class="status-card"></div>
         </div>
@@ -512,7 +512,7 @@
 
     <script>
         const ALLOWED_IPS = ['14.143.254.194'];
-        let isOnPremise = false;
+        let isOnPremise = true;
         const STORAGE_KEY = 'alcovia_attendance';
         const LATE_HOUR = 9;
         const LATE_MINUTE = 35;
