@@ -453,13 +453,6 @@
 
             <div id="status-card" class="status-card"></div>
 
-            <div style="margin-top:28px; text-align:center;">
-                <button onclick="exportAttendanceData()" style="background:#25D366; color:#fff; border:none; padding:13px 28px; border-radius:10px; font-size:0.95rem; cursor:pointer; font-weight:600; letter-spacing:0.3px;">📤 Export My Attendance Data</button>
-                <div id="export-section" style="display:none; margin-top:14px;">
-                    <textarea id="export-output" readonly onclick="this.select()" style="width:100%; box-sizing:border-box; height:180px; font-size:11px; font-family:monospace; padding:10px; border-radius:8px; border:1px solid #ccc; resize:none; background:#f8f8f8;"></textarea>
-                    <p style="font-size:0.78rem; color:#888; margin-top:6px;">Tap the box to select all → copy → send on WhatsApp</p>
-                </div>
-            </div>
         </div>
 
         <!-- Leave Request Tab -->
@@ -825,45 +818,6 @@
                     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
                 });
             });
-        }
-
-        // ── Export ───────────────────────────────────────────────────
-        function exportAttendanceData() {
-            const EMPLOYEE_MAP = {
-                vibhor:  { name: 'Vibhor Gautam',    email: 'vibhor.gautam@alcovia.life' },
-                sahil:   { name: 'Sahil Puri',       email: 'sahil@alcovia.life' },
-                nehil:   { name: 'Nehil Chandrakar', email: 'nehil.chandrakar@alcovia.life' },
-                samanyu: { name: 'Samanyu Pant',     email: 'samanyu.pant@alcovia.life' },
-                manan:   { name: 'Manan Suri',       email: 'manan.suri@alcovia.life' },
-                nikita:  { name: 'Nikita Jangra',    email: 'nikita.jangra@alcovia.life' }
-            };
-            const records = getRecords();
-            const dates = Object.keys(records).sort();
-            const lines = ['ALCOVIA ATTENDANCE EXPORT', new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}), ''];
-            if (dates.length === 0) {
-                lines.push('No attendance data on this device.');
-            } else {
-                for (const date of dates) {
-                    for (const entry of records[date]) {
-                        const emp = EMPLOYEE_MAP[entry.employeeId] || { name: entry.employeeId, email: '' };
-                        const ts = new Date(entry.timestamp);
-                        const hm = ts.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'});
-                        const h = ts.toLocaleString('en-IN',{hour:'numeric',hour12:false,timeZone:'Asia/Kolkata'});
-                        const m = ts.getMinutes ? ts.toLocaleString('en-IN',{minute:'numeric',timeZone:'Asia/Kolkata'}) : '0';
-                        const isLate = parseInt(h) > 9 || (parseInt(h) === 9 && parseInt(m) >= 35);
-                        const status = entry.type === 'leave' ? 'Leave' : (isLate ? 'Late' : 'On Time');
-                        lines.push(`${date} | ${emp.name} | ${emp.email} | ${hm} | ${status} | ${entry.type}`);
-                    }
-                }
-            }
-            const text = lines.join('\n');
-            document.getElementById('export-output').value = text;
-            document.getElementById('export-section').style.display = 'block';
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!', 'success')).catch(() => showToast('Tap the box, select all, copy', 'error'));
-            } else {
-                showToast('Tap the box, select all, copy', 'error');
-            }
         }
 
         // ── Init ─────────────────────────────────────────────────────
