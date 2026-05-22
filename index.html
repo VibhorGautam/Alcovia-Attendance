@@ -448,6 +448,7 @@
                 <input type="text" id="reason" placeholder="e.g. Traffic, Doctor visit, Overslept">
             </div>
 
+            <div id="notice-offpremise" class="notice leave hidden">Connect to office Wi-Fi to mark attendance.</div>
             <button class="btn btn-checkin" id="btn-checkin" disabled>Check In</button>
 
             <div id="status-card" class="status-card"></div>
@@ -511,6 +512,7 @@
 
     <script>
         const ALLOWED_IPS = ['14.143.254.194'];
+        let isOnPremise = false;
         const STORAGE_KEY = 'alcovia_attendance';
         const LATE_HOUR = 9;
         const LATE_MINUTE = 35;
@@ -659,6 +661,9 @@
             const leaveGroup = document.getElementById('leave-group');
             const reasonGroup = document.getElementById('reason-group');
 
+            const offPremiseNotice = document.getElementById('notice-offpremise');
+            offPremiseNotice.classList.toggle('hidden', isOnPremise);
+
             if (!emp) {
                 checkinBtn.disabled = true;
                 checkinBtn.classList.remove('hidden');
@@ -675,7 +680,7 @@
             reasonGroup.classList.toggle('hidden', !isPreCheckin || !isCurrentlyLate());
 
             if (!last) {
-                checkinBtn.disabled = false;
+                checkinBtn.disabled = !isOnPremise;
                 checkinBtn.classList.remove('hidden');
                 card.classList.remove('visible');
             } else {
@@ -820,13 +825,9 @@
             try {
                 const res = await fetch('https://api.ipify.org?format=json');
                 const data = await res.json();
-                if (!ALLOWED_IPS.includes(data.ip)) {
-                    document.getElementById('blocked').classList.add('active');
-                    return;
-                }
+                isOnPremise = ALLOWED_IPS.includes(data.ip);
             } catch {
-                document.getElementById('blocked').classList.add('active');
-                return;
+                isOnPremise = false;
             }
 
             document.getElementById('app').classList.add('active');
