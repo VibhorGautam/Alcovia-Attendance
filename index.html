@@ -512,11 +512,14 @@
     <script>
         const ALLOWED_IPS = ['14.143.254.194'];
         let isOnPremise = false;
-        const STORAGE_KEY = 'alcovia_attendance';
+        // v2: the old key could hold check-ins that were cached even though the save failed
+        const STORAGE_KEY = 'alcovia_attendance_v2';
         const LATE_HOUR = 9;
         const LATE_MINUTE = 35;
 
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwj9HvnKZOCKEmu5CODKcdyHVRF-j-rB52UZytumdyvlRv4WR8e0qCvnqy3ebV5Gv6s1w/exec';
+        // check-ins and the yesterday lookup go through n8n (Sahil's service account), leave requests stay on Apps Script
+        const ATTENDANCE_API = 'https://n8n.alcovia.life/webhook/alcovia-attendance-api';
 
         // ── Utilities ────────────────────────────────────────────────
 
@@ -543,30 +546,40 @@
             const records = getRecords();
             if (!records[key]) records[key] = [];
             records[key].push(entry);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            // local copy is only for the UI, the server already has the row
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch {}
         }
 
-        const yesterdayCache = {}; // empEmail -> boolean (has entry on prev workday)
+        // keyed by email and the previous workday, so a page left open overnight looks up the right day
+        const yesterdayCache = {}; // yKey -> boolean (has entry on prev workday)
+        const lookupPending = {}; // yKey -> true while the yesterday lookup is in flight
+
+        function yKey(email) { return email + '|' + getPreviousWorkday(); }
 
         async function prefetchYesterday(emp) {
-            const email = emp.email;
-            if (email in yesterdayCache) return;
-            yesterdayCache[email] = true; // default: hide absence form while fetching
             const prevDay = getPreviousWorkday();
+            const email = emp.email;
+            const key = email + '|' + prevDay;
+            if (key in yesterdayCache) return;
+            yesterdayCache[key] = true; // default: hide absence form while fetching
+            lookupPending[key] = true;
             try {
                 const payload = JSON.stringify({ action: 'checkYesterday', email, date: prevDay });
                 const params = new URLSearchParams({ payload });
-                const res = await fetch(`${SCRIPT_URL}?${params.toString()}`);
+                const res = await fetch(`${ATTENDANCE_API}?${params.toString()}`);
                 const data = await res.json();
-                yesterdayCache[email] = !!data.hasEntry;
+                // only trust an explicit answer, anything else fails open
+                yesterdayCache[key] = typeof data.hasEntry === 'boolean' ? data.hasEntry : true;
             } catch {
-                yesterdayCache[email] = true; // fail open — don't block check-in
+                yesterdayCache[key] = true; // fail open, don't block check-in
             }
+            delete lookupPending[key];
             updateUI();
         }
 
         function hadYesterdayEntry(empEmail) {
-            return empEmail in yesterdayCache ? yesterdayCache[empEmail] : true;
+            const key = yKey(empEmail);
+            return key in yesterdayCache ? yesterdayCache[key] : true;
         }
 
         function getEntries(empId) {
@@ -628,9 +641,18 @@
             setTimeout(() => t.classList.remove('show'), 3000);
         }
 
-        function pushToSheet(data) {
-            const params = new URLSearchParams({ payload: JSON.stringify(data) });
-            fetch(`${SCRIPT_URL}?${params.toString()}`).catch(err => console.error('Sheet sync failed:', err));
+        // resolves to the server reply only when it confirms the row is saved, otherwise null
+        async function pushToSheet(data) {
+            const params = new URLSearchParams({ payload: JSON.stringify({ action: 'checkin', ...data }) });
+            try {
+                const res = await fetch(`${ATTENDANCE_API}?${params.toString()}`);
+                if (!res.ok) return null;
+                const body = await res.json();
+                return body.result === 'ok' ? body : null;
+            } catch (err) {
+                console.error('Sheet sync failed:', err);
+                return null;
+            }
         }
 
         // ── Clock ────────────────────────────────────────────────────
@@ -675,11 +697,15 @@
             const last = getLastEntry(emp.id);
             const isPreCheckin = !last;
 
+            // the previous workday changes at midnight, so look it up again for the new day
+            if (isPreCheckin && !(yKey(emp.email) in yesterdayCache)) prefetchYesterday(emp);
+
             leaveGroup.classList.toggle('hidden', !isPreCheckin || hadYesterdayEntry(emp.email));
             reasonGroup.classList.toggle('hidden', !isPreCheckin || !isCurrentlyLate());
 
             if (!last) {
-                checkinBtn.disabled = !isOnPremise;
+                // wait for the yesterday lookup so the absence form can't be skipped by checking in early
+                checkinBtn.disabled = !isOnPremise || saving || !!lookupPending[yKey(emp.email)];
                 checkinBtn.classList.remove('hidden');
                 card.classList.remove('visible');
             } else {
@@ -694,10 +720,15 @@
             }
         }
 
-        function record(type) {
-            const emp = getSelectedEmployee();
-            if (!emp) return;
+        let saving = false;
 
+        async function record(type) {
+            const emp = getSelectedEmployee();
+            if (!emp || saving) return;
+
+            // one timestamp for the whole tap, so the network check can't push it past the late cutoff or midnight
+            const tapTime = new Date();
+            let absence = null;
             if (type === 'in') {
                 const prevDay = getPreviousWorkday();
                 if (!hadYesterdayEntry(emp.email)) {
@@ -705,26 +736,37 @@
                     const leaveReason = document.getElementById('leave-reason').value.trim();
                     if (!leaveType) { showToast("Select absence type", 'error'); return; }
                     if (!leaveReason) { showToast("Provide a reason for yesterday's absence", 'error'); return; }
-                    const absenceParams = new URLSearchParams({ payload: JSON.stringify({
-                        action: 'leave', name: emp.name, email: emp.email,
-                        leaveType: leaveType, startDate: prevDay, endDate: prevDay, reason: leaveReason
-                    })});
-                    fetch(`${SCRIPT_URL}?${absenceParams.toString()}`).catch(() => {});
-                    saveRecord({ employeeId: emp.id, type: 'leave', timestamp: new Date(prevDay).toISOString() }, prevDay);
+                    absence = { prevDay, leaveType, leaveReason };
                 }
 
-                if (isCurrentlyLate()) {
+                if (getStatus(tapTime) === 'Late') {
                     const reason = document.getElementById('reason').value.trim();
                     if (!reason) { showToast('Provide a reason for late arrival', 'error'); return; }
                 }
             }
 
-            const now = new Date();
+            const btn = document.getElementById('btn-checkin');
+            saving = true;
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            // the page may have been opened on office wifi and then moved to mobile data, so check again now
+            const ip = await getPublicIp();
+            isOnPremise = ALLOWED_IPS.includes(ip);
+            if (!isOnPremise) {
+                btn.textContent = 'Check In';
+                saving = false;
+                updateUI();
+                showToast('Not on the WeWork network. Connect to office wifi to check in.', 'error');
+                return;
+            }
+
+            const now = tapTime;
             const reason = document.getElementById('reason').value.trim();
 
-            saveRecord({ employeeId: emp.id, type: type, timestamp: now.toISOString() });
-            pushToSheet({
-                date: todayKey(),
+            const saved = await pushToSheet({
+                ip,
+                date: localDateKey(now),
                 day: getDayName(now),
                 name: emp.name,
                 email: emp.email,
@@ -733,10 +775,55 @@
                 reason: reason
             });
 
+            btn.textContent = 'Check In';
+
+            if (!saved) {
+                saving = false;
+                updateUI();
+                showToast('Check-in NOT saved. Please try again.', 'error');
+                return;
+            }
+
+            // yesterday's absence is filed only once today's check-in is confirmed, and not at all when
+            // the server says today was already saved (another tab or device got there first)
+            let absenceFailed = false;
+            if (absence && !saved.duplicate) {
+                const absenceParams = new URLSearchParams({ payload: JSON.stringify({
+                    action: 'leave', name: emp.name, email: emp.email,
+                    leaveType: absence.leaveType, startDate: absence.prevDay, endDate: absence.prevDay, reason: absence.leaveReason
+                })});
+                try {
+                    const r = await fetch(`${SCRIPT_URL}?${absenceParams.toString()}`);
+                    const d = await r.json();
+                    absenceFailed = d.result !== 'ok';
+                } catch {
+                    absenceFailed = true;
+                }
+                if (!absenceFailed) {
+                    saveRecord({ employeeId: emp.id, type: 'leave', timestamp: new Date(absence.prevDay).toISOString() }, absence.prevDay);
+                }
+            }
+
+            // on a duplicate, show the time the server already has rather than this retry's time
+            let checkedAt = now;
+            if (saved.duplicate && /^\d{1,2}:\d{2}$/.test(saved.time || '')) {
+                const [hh, mi] = saved.time.split(':').map(Number);
+                checkedAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mi);
+            }
+            saveRecord({ employeeId: emp.id, type: type, timestamp: checkedAt.toISOString() });
+            // a duplicate only proves today's check-in exists, not that yesterday's absence was filed
+            const absenceUnconfirmed = absence && saved.duplicate;
             document.getElementById('reason').value = '';
-            document.getElementById('leave-reason').value = '';
+            if (!absenceFailed && !absenceUnconfirmed) document.getElementById('leave-reason').value = '';
+            saving = false;
             updateUI();
-            showToast('Checked in successfully', 'success');
+            if (absenceFailed) {
+                showToast("Checked in, but yesterday's absence was NOT filed. Use the Leave Request tab.", 'error');
+            } else if (absenceUnconfirmed) {
+                showToast("Already checked in today. If yesterday's absence isn't filed, use the Leave Request tab.", 'error');
+            } else {
+                showToast(saved.duplicate ? 'Already checked in today' : 'Checked in successfully', 'success');
+            }
         }
 
         // ── Leave Request tab ────────────────────────────────────────
@@ -820,14 +907,18 @@
 
         // ── Init ─────────────────────────────────────────────────────
 
-        async function init() {
+        async function getPublicIp() {
             try {
-                const res = await fetch('https://api.ipify.org?format=json');
+                const res = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
                 const data = await res.json();
-                isOnPremise = ALLOWED_IPS.includes(data.ip);
+                return String(data.ip || '');
             } catch {
-                isOnPremise = false;
+                return '';
             }
+        }
+
+        async function init() {
+            isOnPremise = ALLOWED_IPS.includes(await getPublicIp());
 
             document.getElementById('app').classList.add('active');
             updateClock();
