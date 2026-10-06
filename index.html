@@ -520,6 +520,8 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwj9HvnKZOCKEmu5CODKcdyHVRF-j-rB52UZytumdyvlRv4WR8e0qCvnqy3ebV5Gv6s1w/exec';
         // check-ins and the yesterday lookup go through n8n (Sahil's service account), leave requests stay on Apps Script
         const ATTENDANCE_API = 'https://n8n.alcovia.life/webhook/alcovia-attendance-api';
+        // bump on every deploy so tabs left open pick up the new page on their own
+        const PAGE_VERSION = '2026-10-05.2';
 
         // ── Utilities ────────────────────────────────────────────────
 
@@ -917,12 +919,50 @@
             }
         }
 
+        // ── Auto update ──────────────────────────────────────────────
+
+        // an open tab keeps running old code after a deploy, so look for a newer version and reload into it
+        // don't reload mid save, mid leave submission, or while someone is filling something in
+        function updateBlocked() {
+            if (saving) return true;
+            if (document.getElementById('btn-submit-leave').disabled) return true;
+            if (document.getElementById('tab-leave').classList.contains('active')) return true;
+            return ['reason', 'leave-reason', 'leave-reason-text'].some(id => document.getElementById(id).value.trim());
+        }
+
+        const RELOAD_RETRY_MS = 10 * 60 * 1000; // GitHub Pages can take up to 10 min to serve a new deploy everywhere
+
+        async function checkForUpdate() {
+            if (updateBlocked()) return;
+            try {
+                const res = await fetch(`${location.pathname}?t=${Date.now()}`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const m = (await res.text()).match(new RegExp("PAGE_VERSION = '([0-9.-]+)'"));
+                if (!m || m[1] === PAGE_VERSION) return;
+                if (updateBlocked()) return; // someone may have started something while the check was running
+                // remember the last attempt so a stale copy can't cause a reload loop, but retry later in case it was the CDN
+                let last = null;
+                try {
+                    last = JSON.parse(sessionStorage.getItem('alcovia_reload_attempt') || 'null');
+                    sessionStorage.setItem('alcovia_reload_attempt', JSON.stringify({ v: m[1], at: last && last.v === m[1] && Date.now() - last.at < RELOAD_RETRY_MS ? last.at : Date.now() }));
+                } catch {
+                    return; // without storage there's no loop guard, so leave it to a manual refresh
+                }
+                if (last && last.v === m[1] && Date.now() - last.at < RELOAD_RETRY_MS) return;
+                // a new query string skips the browser's cached copy of the old page
+                location.replace(`${location.pathname}?v=${encodeURIComponent(m[1])}`);
+            } catch {}
+        }
+
         async function init() {
             isOnPremise = ALLOWED_IPS.includes(await getPublicIp());
 
             document.getElementById('app').classList.add('active');
             updateClock();
             setInterval(() => { updateClock(); updateUI(); }, 1000);
+            setInterval(checkForUpdate, 5 * 60 * 1000);
+            // phones pause timers in background tabs, so also check when the page comes back into view
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
 
             initTabs();
             setLeaveDefaults();
